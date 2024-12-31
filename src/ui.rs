@@ -10,17 +10,57 @@ use ratatui::widgets::{
     block::{Position, Title},
     Block,
 };
-use ratatui::style::{Color, Style};
+use ratatui::style::{Color, Style, Styled};
 
-pub fn draw_frame(f: &mut Frame, remaining: usize) {
-    let main_block = Block::default()
+pub fn draw_frame(f: &mut Frame, remaining: usize, current_deck: Option<&str>) {
+    let mut main_block = Block::default()
         .borders(Borders::ALL)
         .title(" 까먹다 ")
         .title(
-            Title::from(Line::from(format!(" {} ", remaining)).style(Style::default().fg(Color::Green)))
-                .alignment(Alignment::Right)
-                .position(Position::Bottom)
+            Title::from(Line::from(" | ")) // Separator
         );
+
+    if let Some(deck_name) = current_deck {
+        main_block = main_block.title(
+            Title::from(Line::from(Span::styled(
+                format!(" {} ", deck_name),
+                Style::default().fg(Color::Yellow)
+            )))
+        );
+    }
+
+    // Create a nicely formatted shortcuts string with colors and separators
+    let shortcuts = Line::from(vec![
+        Span::raw(" "),
+        Span::styled("Space", Style::default().fg(Color::Yellow)),  // Unicode space symbol
+        Span::raw(": Toggle "),
+        Span::raw("│ "),
+        Span::styled("↵", Style::default().fg(Color::Yellow)),  // Unicode enter symbol
+        Span::raw(": Remember "),
+        Span::raw("│ "),
+        Span::styled("f", Style::default().fg(Color::Yellow)),
+        Span::raw(": Forgot "),
+        Span::raw("│ "),
+        Span::styled("q", Style::default().fg(Color::Yellow)),
+        Span::raw(": Quit "),
+    ]);
+
+    // Add styled keyboard shortcuts to bottom left
+    main_block = main_block.title(
+        Title::from(shortcuts)
+            .alignment(Alignment::Left)
+            .position(Position::Bottom)
+    );
+
+    // Remaining cards count stays on bottom right
+    main_block = main_block.title(
+        Title::from(Line::from(Span::styled(
+            format!(" {} ", remaining),
+            Style::default().fg(Color::Green)
+        )))
+        .alignment(Alignment::Right)
+        .position(Position::Bottom)
+    );
     
     f.render_widget(main_block, f.area());
 }

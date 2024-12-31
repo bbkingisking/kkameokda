@@ -134,7 +134,7 @@ impl App {
 
     pub fn draw(&self, f: &mut Frame) {
         let total_due = self.due_cards_count();
-        draw_frame(f, total_due);
+        draw_frame(f, total_due, self.current_deck_name());
 
         if let Some((card, _)) = self.current_card() {
             match self.state {
