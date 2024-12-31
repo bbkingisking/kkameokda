@@ -9,7 +9,7 @@ use color_eyre::Result;
 pub struct Deck {
     pub name: String,
     pub cards: Vec<Card>,
-    pub subdecks: Option<Vec<Deck>>,
+    pub subdecks: Vec<Deck>,
 }
 
 #[derive(Deserialize, Serialize)]

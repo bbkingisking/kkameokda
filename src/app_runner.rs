@@ -20,9 +20,7 @@ pub fn collect_due_cards<'a>(decks: &'a [Deck], current_time: u64) -> Vec<(&'a C
         );
         
         // Recursively add cards from subdecks
-        if let Some(subdecks) = &deck.subdecks {
-            cards.extend(collect_due_cards(subdecks, current_time));
-        }
+        cards.extend(collect_due_cards(&deck.subdecks, current_time));
     }
     
     cards

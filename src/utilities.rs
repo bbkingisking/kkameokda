@@ -13,9 +13,8 @@ pub fn print_deck_structure(deck: &Deck, indent: usize) {
     let indent_str = " ".repeat(indent);
     println!("{}└─ {} ({} cards)", indent_str, deck.name, deck.cards.len());
     
-    if let Some(subdecks) = &deck.subdecks {
-        for subdeck in subdecks {
-            print_deck_structure(subdeck, indent + 2);
-        }
+    // Remove the if let and just iterate directly
+    for subdeck in &deck.subdecks {
+        print_deck_structure(subdeck, indent + 2);
     }
 }

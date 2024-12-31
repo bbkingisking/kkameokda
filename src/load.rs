@@ -65,7 +65,7 @@ fn load_deck_from_directory(path: &Path) -> Result<Deck> {
     Ok(Deck {
         name: deck_name,
         cards,
-        subdecks: if subdecks.is_empty() { None } else { Some(subdecks) },
+        subdecks, // Just pass the vector directly
     })
 }
 

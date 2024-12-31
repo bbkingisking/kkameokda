@@ -48,15 +48,14 @@ impl App {
                 }
             }
             
-            if let Some(subdecks) = &mut deck.subdecks {
-                for subdeck in subdecks {
-                    for card in &mut subdeck.cards {
-                        if card.next_review < Some(current_time) {
-                            if found_index == index {
-                                return Some((card, &subdeck.name));
-                            }
-                            found_index += 1;
+            // Remove the if let and iterate directly
+            for subdeck in &mut deck.subdecks {
+                for card in &mut subdeck.cards {
+                    if card.next_review < Some(current_time) {
+                        if found_index == index {
+                            return Some((card, &subdeck.name));
                         }
+                        found_index += 1;
                     }
                 }
             }
@@ -128,8 +127,9 @@ impl App {
         }
     }
 
-    pub fn current_deck_name(&self) -> Option<&str> {
-        self.current_card().map(|(_, deck_name)| deck_name)
+    fn current_deck_name(&self) -> Option<&str> {
+        // Change the return type to Option<String> if you want to keep the full path
+        self.current_card().map(|(_, deck_path)| deck_path)
     }
 
     pub fn draw(&self, f: &mut Frame) {
