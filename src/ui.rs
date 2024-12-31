@@ -93,22 +93,12 @@ pub fn draw_hint(f: &mut Frame, card: &Card, reversed: bool) {
         ])
         .split(inner_area);
 
-    let back_layout = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints(vec![
-            Constraint::Percentage(10),
-            Constraint::Percentage(10),
-            Constraint::Percentage(40),
-            Constraint::Percentage(40),
-        ])
-        .split(inner_layout[2]);
-
     if reversed {
         f.render_widget(
-            Paragraph::new(&*card.back)
-            .alignment(Alignment::Center),
-            back_layout[1]
-            );
+            Paragraph::new(card.back.as_str())
+                .alignment(Alignment::Center),
+            inner_layout[1]
+        );
     } else {
         f.render_widget(
             Paragraph::new(card.front.as_str())
@@ -118,7 +108,7 @@ pub fn draw_hint(f: &mut Frame, card: &Card, reversed: bool) {
     }
 }
 
-pub fn draw_full(f: &mut Frame, card: &Card) {
+pub fn draw_full(f: &mut Frame, card: &Card, reversed: bool) {
     let area = f.area();
 
     // Get inner area accounting for the main frame's borders
@@ -137,11 +127,19 @@ pub fn draw_full(f: &mut Frame, card: &Card) {
         .split(inner_area);
 
     // Draw front
-    f.render_widget(
-        Paragraph::new(card.front.as_str())
-            .alignment(Alignment::Center),
-        inner_layout[1]
-    );
+    if reversed {
+        f.render_widget(
+            Paragraph::new(card.back.as_str())
+                .alignment(Alignment::Center),
+            inner_layout[1]
+        );
+    } else {
+        f.render_widget(
+            Paragraph::new(card.front.as_str())
+                .alignment(Alignment::Center),
+            inner_layout[1]
+        );
+    }
 
     // Get layout for back
     let back_layout = Layout::default()
@@ -155,12 +153,19 @@ pub fn draw_full(f: &mut Frame, card: &Card) {
         .split(inner_layout[2]);
 
     // Draw back
-    f.render_widget(
-        Paragraph::new(&*card.back)
-        .alignment(Alignment::Center),
-        back_layout[1]
+    if reversed {
+        f.render_widget(
+            Paragraph::new(card.front.as_str())
+                .alignment(Alignment::Center),
+            back_layout[1]
         );
-
+    } else {
+        f.render_widget(
+            Paragraph::new(card.back.as_str())
+                .alignment(Alignment::Center),
+            back_layout[1]
+        );
+    }
     // Get layout for info
     let info_layout = Layout::default()
         .direction(Direction::Horizontal)

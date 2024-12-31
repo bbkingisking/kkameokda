@@ -183,7 +183,7 @@ impl App {
         if let Some((card, _)) = self.current_card() {
             match self.state {
                 CardState::Hint => draw_hint(f, card, self.reversed),
-                CardState::Full => draw_full(f, card),
+                CardState::Full => draw_full(f, card, self.reversed),
             }
         }
     }
