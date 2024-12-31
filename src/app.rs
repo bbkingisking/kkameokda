@@ -80,8 +80,6 @@ impl App {
         if let Event::Key(KeyEvent { code, .. }) = event {
             match code {
                 KeyCode::Char(' ') => self.toggle_state(),
-                KeyCode::Right => self.next_card(),
-                KeyCode::Left => self.prev_card(),
                 KeyCode::Enter => self.review_card(true)?,
                 KeyCode::Char('f') => self.review_card(false)?,
                 _ => {}
@@ -122,19 +120,6 @@ impl App {
         let due_count = self.due_cards_count();
         if due_count > 0 {
             self.current_card_index = (self.current_card_index + 1) % due_count;
-            self.state = CardState::Hint;
-            self.reversed = rand::random(); // New random value for each card
-        }
-    }
-
-    pub fn prev_card(&mut self) {
-        let due_count = self.due_cards_count();
-        if due_count > 0 {
-            self.current_card_index = if self.current_card_index == 0 {
-                due_count - 1
-            } else {
-                self.current_card_index - 1
-            };
             self.state = CardState::Hint;
             self.reversed = rand::random(); // New random value for each card
         }
