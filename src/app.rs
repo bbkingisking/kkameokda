@@ -1,4 +1,3 @@
-// app.rs
 use crate::model::Card;
 use ratatui::prelude::*;
 use color_eyre::Result;
@@ -8,7 +7,6 @@ use crate::ui::draw_full;
 use crate::utilities::current_unix_time;
 use crate::ui::draw_frame;
 use crate::model::Deck;
-use crate::app_runner::collect_due_cards;
 
 pub enum CardState {
     Hint,
@@ -22,22 +20,51 @@ pub struct App {
     pub remembered_count: u32,
     pub forgotten_count: u32,
     pub reversed: bool,
+    due_cards: Vec<(Card, String)>,
 }
 
 impl App {
     pub fn new(decks: Vec<Deck>) -> Self {
-        Self {
+        let mut app = Self {
             decks,
             current_card_index: 0,
             state: CardState::Hint,
             remembered_count: 0,
             forgotten_count: 0,
             reversed: rand::random(),
+            due_cards: Vec::new(),
+        };
+        app.refresh_due_cards();
+        app
+    }
+
+    fn refresh_due_cards(&mut self) {
+        let current_time = current_unix_time();
+        let mut cards = Vec::new();
+        
+        for deck in &self.decks {
+            // Add cards from current deck
+            cards.extend(
+                deck.cards.iter()
+                    .filter(|card| card.next_review < Some(current_time))
+                    .map(|card| (card.clone(), deck.name.clone()))
+            );
+            
+            // Add cards from subdecks
+            for subdeck in &deck.subdecks {
+                cards.extend(
+                    subdeck.cards.iter()
+                        .filter(|card| card.next_review < Some(current_time))
+                        .map(|card| (card.clone(), subdeck.name.clone()))
+                );
+            }
         }
+        
+        self.due_cards = cards;
     }
 
     pub fn due_cards_count(&self) -> usize {
-        collect_due_cards(&self.decks, current_unix_time()).len()
+        self.due_cards.len()
     }
 
     fn get_card_mut(&mut self, index: usize) -> Option<(&mut Card, &str)> {
@@ -54,7 +81,6 @@ impl App {
                 }
             }
             
-            // Remove the if let and iterate directly
             for subdeck in &mut deck.subdecks {
                 for card in &mut subdeck.cards {
                     if card.next_review < Some(current_time) {
@@ -71,9 +97,8 @@ impl App {
     }
 
     fn current_card(&self) -> Option<(&Card, &str)> {
-        collect_due_cards(&self.decks, current_unix_time())
-            .get(self.current_card_index)
-            .copied()
+        self.due_cards.get(self.current_card_index)
+            .map(|(card, name)| (card, name.as_str()))
     }
 
     pub fn handle_event(&mut self, event: Event) -> Result<()> {
@@ -100,6 +125,10 @@ impl App {
         if let Some((card, _)) = self.get_card_mut(self.current_card_index) {
             card.calculate_next_review(current_time, remembered)?;
         }       
+
+        // Refresh the due cards after reviewing
+        self.refresh_due_cards();
+        
         let due_cards_count = self.due_cards_count();
         if due_cards_count == 0 {
             return Err(color_eyre::eyre::eyre!("No more cards due for review"));
@@ -121,12 +150,11 @@ impl App {
         if due_count > 0 {
             self.current_card_index = (self.current_card_index + 1) % due_count;
             self.state = CardState::Hint;
-            self.reversed = rand::random(); // New random value for each card
+            self.reversed = rand::random();
         }
     }
 
     fn current_deck_name(&self) -> Option<&str> {
-        // Change the return type to Option<String> if you want to keep the full path
         self.current_card().map(|(_, deck_path)| deck_path)
     }
 

@@ -5,14 +5,14 @@ use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use color_eyre::Result;
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Clone)]
 pub struct Deck {
     pub name: String,
     pub cards: Vec<Card>,
     pub subdecks: Vec<Deck>,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Clone)]
 pub struct Card {
     pub front: String,
     pub back: String,
@@ -29,13 +29,13 @@ pub struct Card {
     pub file_path: Option<PathBuf>,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Clone)]
 pub struct ExampleSentence {
     pub sentence: String,
     pub translation: String,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Clone)]
 pub struct ReviewHistory {
      date: u64, // UNIX timestamp
      remembered: bool,

@@ -3,28 +3,9 @@ use ratatui::{
     crossterm::event::{self, Event, KeyCode},
     DefaultTerminal,
 };
-use crate::model::{Card};
 use crate::model::Deck;
 use crate::app::App;
 use color_eyre::Result;
-
-pub fn collect_due_cards<'a>(decks: &'a [Deck], current_time: u64) -> Vec<(&'a Card, &'a str)> {
-    let mut cards = Vec::new();
-    
-    for deck in decks {
-        // Add cards from current deck
-        cards.extend(
-            deck.cards.iter()
-                .filter(|card| card.next_review < Some(current_time))
-                .map(|card| (card, deck.name.as_str()))
-        );
-        
-        // Recursively add cards from subdecks
-        cards.extend(collect_due_cards(&deck.subdecks, current_time));
-    }
-    
-    cards
-}
 
 pub fn run(mut terminal: DefaultTerminal, decks: Vec<Deck>) -> Result<()> {
     let mut app = App::new(decks);
