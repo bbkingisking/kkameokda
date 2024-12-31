@@ -36,32 +36,32 @@ fn load_deck_from_directory(path: &Path) -> Result<Deck> {
     if !path.is_dir() {
         return Err(color_eyre::eyre::eyre!("Path is not a directory"));
     }
-
     let deck_name = path.file_name()
         .and_then(|name| name.to_str())
         .ok_or_else(|| color_eyre::eyre::eyre!("Invalid directory name"))?
         .to_string();
-
     let mut cards = Vec::new();
     let mut subdecks = Vec::new();
-
+    
     for entry in fs::read_dir(path)? {
         let entry = entry?;
         let entry_path = entry.path();
         
-            if entry_path.is_file() && entry_path.extension().map_or(false, |ext| ext == "yaml" || ext == "yml") {
-                let contents = fs::read_to_string(&entry_path)?;
-                let mut card: Card = serde_yaml::from_str(&contents)?;
-                card.file_path = Some(entry_path.clone());
-                cards.push(card);
-            } else if entry_path.is_dir() {
+        if entry_path.is_file() && entry_path.extension().map_or(false, |ext| ext == "yaml" || ext == "yml") {
+            let contents = fs::read_to_string(&entry_path)?;
+            let mut card: Card = serde_yaml::from_str(&contents)?;
+            card.file_path = Some(entry_path.clone());
+            // Initialize review data for cards that don't have it
+            card.initialize_review_data();
+            cards.push(card);
+        } else if entry_path.is_dir() {
             match load_deck_from_directory(&entry_path) {
                 Ok(subdeck) => subdecks.push(subdeck),
                 Err(e) => eprintln!("Error loading subdeck from {:?}: {}", entry_path, e),
             }
         }
     }
-
+    
     Ok(Deck {
         name: deck_name,
         cards,

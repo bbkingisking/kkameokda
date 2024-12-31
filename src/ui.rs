@@ -10,7 +10,7 @@ use ratatui::widgets::{
     block::{Position, Title},
     Block,
 };
-use ratatui::style::{Color, Style, Styled};
+use ratatui::style::{Color, Style};
 
 pub fn draw_frame(f: &mut Frame, remaining: usize, current_deck: Option<&str>) {
     let mut main_block = Block::default()
