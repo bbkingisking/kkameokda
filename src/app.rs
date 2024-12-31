@@ -21,6 +21,7 @@ pub struct App {
     pub state: CardState,
     pub remembered_count: u32,
     pub forgotten_count: u32,
+    pub reversed: bool,
 }
 
 impl App {
@@ -31,6 +32,7 @@ impl App {
             state: CardState::Hint,
             remembered_count: 0,
             forgotten_count: 0,
+            reversed: rand::random(),
         }
     }
 
@@ -121,6 +123,7 @@ impl App {
         if due_count > 0 {
             self.current_card_index = (self.current_card_index + 1) % due_count;
             self.state = CardState::Hint;
+            self.reversed = rand::random(); // New random value for each card
         }
     }
 
@@ -133,6 +136,7 @@ impl App {
                 self.current_card_index - 1
             };
             self.state = CardState::Hint;
+            self.reversed = rand::random(); // New random value for each card
         }
     }
 
@@ -147,7 +151,7 @@ impl App {
 
         if let Some((card, _)) = self.current_card() {
             match self.state {
-                CardState::Hint => draw_hint(f, card),
+                CardState::Hint => draw_hint(f, card, self.reversed),
                 CardState::Full => draw_full(f, card),
             }
         }
