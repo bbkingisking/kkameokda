@@ -3,8 +3,10 @@ mod ui;
 mod model;
 mod utilities;
 mod load;
+mod app;
+mod app_runner;
 
-use crate::ui::run;
+use crate::app_runner::run;
 use crate::load::load_decks;
 use crate::utilities::print_deck_structure;
 

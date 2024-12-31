@@ -1,125 +1,107 @@
 // ui.rs
-use color_eyre::Result;
 use ratatui::{
-    crossterm::event::{self, Event, KeyCode, KeyEventKind},
     layout::{Alignment, Constraint, Layout},
     widgets::{Block, Borders, Paragraph, Wrap},
-    DefaultTerminal, Frame,
+    Frame,
 };
 use ratatui::prelude::*;
 use crate::model::{Card};
-use crate::utilities::current_unix_time;
-use rand::seq::SliceRandom;
-use crate::model::Deck;
 
-pub fn run(mut terminal: DefaultTerminal, decks: Vec<Deck>) -> Result<()> {
-    let current_time = current_unix_time();
-    
-    // Helper function to get cards from a deck and its subdecks recursively
-    fn collect_due_cards<'a>(deck: &'a Deck, current_time: u64) -> Vec<(&'a Card, &'a str)> {
-        let mut cards = deck.cards.iter()
-            .filter(|card| card.next_review < Some(current_time))
-            .map(|card| (card, deck.name.as_str()))
-            .collect::<Vec<_>>();
-            
-        if let Some(subdecks) = &deck.subdecks {
-            for subdeck in subdecks {
-                cards.extend(collect_due_cards(subdeck, current_time));
-            }
-        }
-        
-        cards
-    }
-    
-    // Get due cards from all decks and their subdecks
-    let due_cards: Vec<(&Card, &str)> = decks.iter()
-        .flat_map(|deck| collect_due_cards(deck, current_time))
-        .collect();
-    
-    if due_cards.is_empty() {
-        return Err(color_eyre::eyre::eyre!("No cards due for review"));
-    }
-    
-    let (current_card, deck_name) = due_cards.choose(&mut rand::thread_rng())
-        .expect("No cards due for review");
-
-    loop {
-        terminal.draw(|f| draw(f, current_card))?;
-        if let Event::Key(key) = event::read()? {
-            if key.kind == KeyEventKind::Press {
-                match key.code {
-                    KeyCode::Char('q') => break Ok(()),
-                    _ => {}
-                }
-            }
-        }
-    }
-}
-
-fn draw(frame: &mut Frame, card: &Card) {
+pub fn draw_frame(f: &mut Frame) -> Rect {
     let layout = Layout::default()
     .direction(Direction::Vertical)
     .constraints(vec![
-            Constraint::Length(1), // Title area
-            Constraint::Min(0), // Main area
-            Constraint::Length(1), // Status area
+            Constraint::Length(1),    // Title
+            Constraint::Min(0),       // Content
+            Constraint::Length(1),    // Status
             ])
-    .split(frame.area());
+    .split(f.area());
+
+    // Title
+    f.render_widget(
+        Block::default()
+        .borders(Borders::ALL)
+        .title(" 안녕 "), 
+        layout[0]
+        );
+
+    // Status
+    f.render_widget(
+        Block::default()
+        .borders(Borders::ALL)
+        .title(" Status ")
+        .title_alignment(Alignment::Right),
+        layout[2]
+        );
+
+    // Return the content layout for other views to use
+    layout[1]
+}
+
+pub fn draw_hint(f: &mut Frame, card: &Card) {
+    let content_area = draw_frame(f);
 
     let inner_layout = Layout::default()
     .direction(Direction::Vertical)
     .constraints(vec![
         Constraint::Percentage(30),
-            Constraint::Max(1), // 1 line in the center of the screen
+           Constraint::Max(1),      // Front text
+           Constraint::Min(0),      
+           ])
+    .split(content_area);
+
+    f.render_widget(
+        Paragraph::new(card.front.as_str())
+        .alignment(Alignment::Center),
+        inner_layout[1]
+        );
+}
+
+pub fn draw_full(f: &mut Frame, card: &Card) {
+    let content_area = draw_frame(f);
+    draw_hint(f, card);
+
+    let inner_layout = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints(vec![
+            Constraint::Percentage(30),
+            Constraint::Max(1),
             Constraint::Min(0),
             ])
-    .split(layout[1]);
+        .split(content_area);
 
     let back_layout = Layout::default()
-    .direction(Direction::Vertical)
-    .constraints(vec![
-            Constraint::Percentage(10), // Spacing
-            Constraint::Percentage(10), // This is where the back goes
-            Constraint::Percentage(40), // Spacing
+        .direction(Direction::Vertical)
+        .constraints(vec![
+            Constraint::Percentage(10),
+            Constraint::Percentage(10),
+            Constraint::Percentage(40),
             Constraint::Percentage(40),
             ])
-    .split(inner_layout[2]);
+        .split(inner_layout[2]);
 
-    let misc_layout = Layout::default()
-    .direction(Direction::Horizontal)
-    .constraints(vec![
-        Constraint::Percentage(33),
-        Constraint::Percentage(33),
-        Constraint::Percentage(33),
-        ])
-    .split(back_layout[3]);
+    let info_layout = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints(vec![
+            Constraint::Percentage(33),    
+            Constraint::Percentage(33),    
+            Constraint::Percentage(33),    
+            ])
+        .split(back_layout[3]);
 
-    // Render app's title
-    frame.render_widget(Block::default()
-        .borders(Borders::ALL)
-        .title(" 안녕 "), layout[0]);
-
-    // Render the front of the card
-    frame.render_widget(
-        Paragraph::new(&*card.front)
-        .block(Block::new())
-        .alignment(Alignment::Center),
-        inner_layout[1]);
-
-    // Render the back of the card
-    frame.render_widget(
+    f.render_widget(
         Paragraph::new(&*card.back)
-        .block(Block::new())
         .alignment(Alignment::Center),
-        back_layout[1]);
+        back_layout[1]
+        );
 
-    // Render the explanation
-    frame.render_widget(
+    f.render_widget(
         Paragraph::new(card.explanation.as_deref().unwrap_or(""))
         .wrap(Wrap { trim: true })
         .block(Block::new().title("Explanation").borders(Borders::ALL))
         .alignment(Alignment::Center),
-        misc_layout[0]);
+        info_layout[0]
+        );
 
     let examples = card.examples.as_ref()
     .map(|e| e.iter()
@@ -127,26 +109,19 @@ fn draw(frame: &mut Frame, card: &Card) {
         .collect::<String>())
     .unwrap_or_default();
 
-    // Render the examples
-    frame.render_widget(
+    f.render_widget(
         Paragraph::new(examples)
         .wrap(Wrap { trim: true })
         .block(Block::new().title("Examples").borders(Borders::ALL))
         .alignment(Alignment::Center),
-        misc_layout[1]);
+        info_layout[1]
+        );
 
-    // Render the notes
-    frame.render_widget(
+    f.render_widget(
         Paragraph::new(card.notes.as_deref().unwrap_or(""))
         .wrap(Wrap { trim: true })
         .block(Block::new().title("Notes").borders(Borders::ALL))
         .alignment(Alignment::Center),
-        misc_layout[2]);
-
-    // Render the status bar
-    frame.render_widget(Block::default()
-        .borders(Borders::TOP)
-        .title(" Status ")
-        .title_alignment(Alignment::Right),
-        layout[2]);
+        info_layout[2]
+        );
 }
