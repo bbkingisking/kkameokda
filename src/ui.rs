@@ -1,40 +1,43 @@
 // ui.rs
 use ratatui::{
     layout::{Alignment, Constraint, Layout},
-    widgets::{Block, Borders, Paragraph, Wrap},
+    widgets::{Borders, Paragraph, Wrap},
     Frame,
 };
 use ratatui::prelude::*;
 use crate::model::{Card};
+use ratatui::widgets::{
+    block::{Position, Title},
+    Block,
+};
 
 pub fn draw_frame(f: &mut Frame) -> Rect {
+    let main_block = Block::default()
+        .borders(Borders::ALL)
+        .title(" 까먹다 ")
+        .title(
+            Title::from(" Status ")
+                .alignment(Alignment::Right)
+                .position(Position::Bottom),
+        );
+    
+    // Get the outer area
+    let area = f.area();
+    
+    // Render the main border
+    let inner_area = main_block.inner(area);  // Get the inner area accounting for borders
+    f.render_widget(main_block, area);
+    
+    // Create the layout inside the bordered area using inner_area
     let layout = Layout::default()
-    .direction(Direction::Vertical)
-    .constraints(vec![
-            Constraint::Length(1),    // Title
-            Constraint::Min(0),       // Content
-            Constraint::Length(1),    // Status
-            ])
-    .split(f.area());
+        .direction(Direction::Vertical)
+        .constraints(vec![
+            Constraint::Length(1),    
+            Constraint::Min(0),       
 
-    // Title
-    f.render_widget(
-        Block::default()
-        .borders(Borders::ALL)
-        .title(" 안녕 "), 
-        layout[0]
-        );
-
-    // Status
-    f.render_widget(
-        Block::default()
-        .borders(Borders::ALL)
-        .title(" Status ")
-        .title_alignment(Alignment::Right),
-        layout[2]
-        );
-
-    // Return the content layout for other views to use
+        ])
+        .split(inner_area);  // Use inner_area instead of f.area()
+    
     layout[1]
 }
 
