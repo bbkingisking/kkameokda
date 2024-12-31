@@ -75,7 +75,7 @@ pub struct ReviewHistory {
 
     pub fn initialize_review_data(&mut self) {
         if self.next_review.is_none() {
-            self.next_review = Some(current_unix_time() as u64);
+            self.next_review = Some(current_unix_time() - 1 as u64);
         }
         if self.ease_factor.is_none() {
             self.ease_factor = Some(60);
