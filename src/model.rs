@@ -50,7 +50,7 @@ pub struct ReviewHistory {
             self.next_review = Some(current_time + self.ease_factor.unwrap_or(0) + random_factor);
         } else {
             self.ease_factor = Some(60);
-            self.next_review = Some(current_time + 60 + random_factor);
+            self.next_review = Some(current_time + random_factor);
         }
         
         // Add review to history

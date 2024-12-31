@@ -7,29 +7,68 @@ use crate::ui::draw_hint;
 use crate::ui::draw_full;
 use crate::utilities::current_unix_time;
 use crate::ui::draw_frame;
+use crate::model::Deck;
+use crate::app_runner::collect_due_cards;
 
 pub enum CardState {
     Hint,
     Full,
 }
 
-pub struct App<'a> {
-    pub cards: Vec<(&'a mut Card, &'a str)>, // Change to mut Card
+pub struct App {
+    pub decks: Vec<Deck>,
     pub current_card_index: usize,
     pub state: CardState,
 }
 
-impl<'a> App<'a> {
-    pub fn new(cards: Vec<(&'a mut Card, &'a str)>) -> Self {  // Update constructor
+impl App {
+    pub fn new(decks: Vec<Deck>) -> Self {
         Self {
-            cards,
+            decks,
             current_card_index: 0,
             state: CardState::Hint,
         }
     }
 
     pub fn due_cards_count(&self) -> usize {
-        self.cards.len()
+        collect_due_cards(&self.decks, current_unix_time()).len()
+    }
+
+    fn get_card_mut(&mut self, index: usize) -> Option<(&mut Card, &str)> {
+        let current_time = current_unix_time();
+        let mut found_index = 0;
+        
+        for deck in &mut self.decks {
+            for card in &mut deck.cards {
+                if card.next_review < Some(current_time) {
+                    if found_index == index {
+                        return Some((card, &deck.name));
+                    }
+                    found_index += 1;
+                }
+            }
+            
+            if let Some(subdecks) = &mut deck.subdecks {
+                for subdeck in subdecks {
+                    for card in &mut subdeck.cards {
+                        if card.next_review < Some(current_time) {
+                            if found_index == index {
+                                return Some((card, &subdeck.name));
+                            }
+                            found_index += 1;
+                        }
+                    }
+                }
+            }
+        }
+        
+        None
+    }
+
+    fn current_card(&self) -> Option<(&Card, &str)> {
+        collect_due_cards(&self.decks, current_unix_time())
+            .get(self.current_card_index)
+            .copied()
     }
 
     pub fn handle_event(&mut self, event: Event) -> Result<()> {
@@ -38,8 +77,8 @@ impl<'a> App<'a> {
                 KeyCode::Char(' ') => self.toggle_state(),
                 KeyCode::Right => self.next_card(),
                 KeyCode::Left => self.prev_card(),
-                KeyCode::Enter => self.review_card(true)?,  // Remember
-                KeyCode::Char('f') => self.review_card(false)?,  // Forget
+                KeyCode::Enter => self.review_card(true)?,
+                KeyCode::Char('f') => self.review_card(false)?,
                 _ => {}
             }
         }
@@ -49,16 +88,16 @@ impl<'a> App<'a> {
     fn review_card(&mut self, remembered: bool) -> Result<()> {
         let current_time = current_unix_time();
         
-        // Get mutable reference to current card
-        // Note: We need to index into cards vector directly since we're mutating
-        let (card, _) = &mut self.cards[self.current_card_index];
+        if let Some((card, _)) = self.get_card_mut(self.current_card_index) {
+            card.calculate_next_review(current_time, remembered)?;
+        }
         
-        // Calculate next review time and save
-        card.calculate_next_review(current_time, remembered)?;
+        let due_cards_count = self.due_cards_count();
+        if due_cards_count == 0 {
+            return Err(color_eyre::eyre::eyre!("No more cards due for review"));
+        }
         
-        // Move to next card
         self.next_card();
-        
         Ok(())
     }
 
@@ -70,34 +109,38 @@ impl<'a> App<'a> {
     }
 
     pub fn next_card(&mut self) {
-        self.current_card_index = (self.current_card_index + 1) % self.cards.len();
-        self.state = CardState::Hint;
+        let due_count = self.due_cards_count();
+        if due_count > 0 {
+            self.current_card_index = (self.current_card_index + 1) % due_count;
+            self.state = CardState::Hint;
+        }
     }
 
     pub fn prev_card(&mut self) {
-        self.current_card_index = if self.current_card_index == 0 {
-            self.cards.len() - 1
-        } else {
-            self.current_card_index - 1
-        };
-        self.state = CardState::Hint;
+        let due_count = self.due_cards_count();
+        if due_count > 0 {
+            self.current_card_index = if self.current_card_index == 0 {
+                due_count - 1
+            } else {
+                self.current_card_index - 1
+            };
+            self.state = CardState::Hint;
+        }
     }
 
-    pub fn current_card(&self) -> &Card {
-        self.cards[self.current_card_index].0
-    }
-
-    pub fn current_deck_name(&self) -> &str {
-        self.cards[self.current_card_index].1
+    pub fn current_deck_name(&self) -> Option<&str> {
+        self.current_card().map(|(_, deck_name)| deck_name)
     }
 
     pub fn draw(&self, f: &mut Frame) {
         let total_due = self.due_cards_count();
         draw_frame(f, total_due);
 
-        match self.state {
-            CardState::Hint => draw_hint(f, self.current_card()),
-            CardState::Full => draw_full(f, self.current_card()),
+        if let Some((card, _)) = self.current_card() {
+            match self.state {
+                CardState::Hint => draw_hint(f, card),
+                CardState::Full => draw_full(f, card),
+            }
         }
     }
 }
