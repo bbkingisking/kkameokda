@@ -15,26 +15,29 @@ pub enum CardState {
 
 pub struct App {
     pub decks: Vec<Deck>,
-    pub current_card_index: usize,
     pub state: CardState,
     pub remembered_count: u32,
     pub forgotten_count: u32,
     pub reversed: bool,
     due_cards: Vec<(Card, String)>,
+    current_card: Option<(Card, String)>,
 }
 
 impl App {
     pub fn new(decks: Vec<Deck>) -> Self {
         let mut app = Self {
             decks,
-            current_card_index: 0,
             state: CardState::Hint,
             remembered_count: 0,
             forgotten_count: 0,
             reversed: rand::random(),
             due_cards: Vec::new(),
+            current_card: None,
         };
         app.refresh_due_cards();
+        if !app.due_cards.is_empty() {
+            app.current_card = Some(app.due_cards[0].clone());
+        }
         app
     }
 
@@ -43,14 +46,12 @@ impl App {
         let mut cards = Vec::new();
         
         for deck in &self.decks {
-            // Add cards from current deck
             cards.extend(
                 deck.cards.iter()
                     .filter(|card| card.next_review < Some(current_time))
                     .map(|card| (card.clone(), deck.name.clone()))
             );
             
-            // Add cards from subdecks
             for subdeck in &deck.subdecks {
                 cards.extend(
                     subdeck.cards.iter()
@@ -67,27 +68,24 @@ impl App {
         self.due_cards.len()
     }
 
-    fn get_card_mut(&mut self, index: usize) -> Option<(&mut Card, &str)> {
+    fn get_card_mut(&mut self, card_to_find: &Card) -> Option<(&mut Card, &str)> {
         let current_time = current_unix_time();
-        let mut found_index = 0;
         
         for deck in &mut self.decks {
             for card in &mut deck.cards {
-                if card.next_review < Some(current_time) {
-                    if found_index == index {
-                        return Some((card, &deck.name));
-                    }
-                    found_index += 1;
+                if card.next_review < Some(current_time) && 
+                   card.front == card_to_find.front && 
+                   card.back == card_to_find.back {
+                    return Some((card, &deck.name));
                 }
             }
             
             for subdeck in &mut deck.subdecks {
                 for card in &mut subdeck.cards {
-                    if card.next_review < Some(current_time) {
-                        if found_index == index {
-                            return Some((card, &subdeck.name));
-                        }
-                        found_index += 1;
+                    if card.next_review < Some(current_time) && 
+                       card.front == card_to_find.front && 
+                       card.back == card_to_find.back {
+                        return Some((card, &subdeck.name));
                     }
                 }
             }
@@ -97,7 +95,7 @@ impl App {
     }
 
     fn current_card(&self) -> Option<(&Card, &str)> {
-        self.due_cards.get(self.current_card_index)
+        self.current_card.as_ref()
             .map(|(card, name)| (card, name.as_str()))
     }
 
@@ -122,11 +120,17 @@ impl App {
             self.forgotten_count += 1;
         }
         
-        if let Some((card, _)) = self.get_card_mut(self.current_card_index) {
-            card.calculate_next_review(current_time, remembered)?;
-        }       
+        // Clone the current card first to avoid the borrow conflict
+        let current_card = match &self.current_card {
+            Some((card, _)) => card.clone(),
+            None => return Ok(()),
+        };
 
-        // Refresh the due cards after reviewing
+        // Now we can mutably borrow self
+        if let Some((card, _)) = self.get_card_mut(&current_card) {
+            card.calculate_next_review(current_time, remembered)?;
+        }
+
         self.refresh_due_cards();
         
         let due_cards_count = self.due_cards_count();
@@ -145,12 +149,26 @@ impl App {
         };
     }
 
-    pub fn next_card(&mut self) {
-        let due_count = self.due_cards_count();
-        if due_count > 0 {
-            self.current_card_index = (self.current_card_index + 1) % due_count;
-            self.state = CardState::Hint;
-            self.reversed = rand::random();
+    fn next_card(&mut self) {
+        if !self.due_cards.is_empty() {
+            let next_card = if let Some((current_card, _)) = &self.current_card {
+                // Find the first card that's different from the current one
+                self.due_cards.iter()
+                    .find(|(card, _)| 
+                        card.front != current_card.front || 
+                        card.back != current_card.back
+                    )
+                    .or(self.due_cards.first())
+                    .cloned()
+            } else {
+                self.due_cards.first().cloned()
+            };
+            
+            if let Some(card) = next_card {
+                self.current_card = Some(card);
+                self.state = CardState::Hint;
+                self.reversed = rand::random();
+            }
         }
     }
 
