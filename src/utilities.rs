@@ -19,3 +19,15 @@ pub fn print_deck_structure(deck: &Deck, indent: usize) {
         println!("{}└─ {} ({} cards)", indent_str, subdeck_name, subdeck.cards.len());
     }
 }
+
+pub fn print_session_summary(remembered: u32, forgotten: u32) {
+    let total = remembered + forgotten;
+    if total > 0 {
+        println!("\nSession Summary");
+        println!("---------------");
+        println!("In this session, you remembered \x1b[32m{}\x1b[0m out of {} cards ({:.1}% retention rate)", 
+            remembered, total,
+            (remembered as f64 / total as f64 * 100.0)
+        );
+    }
+}

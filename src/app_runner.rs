@@ -7,7 +7,7 @@ use crate::model::Deck;
 use crate::app::App;
 use color_eyre::Result;
 
-pub fn run(mut terminal: DefaultTerminal, decks: Vec<Deck>) -> Result<()> {
+pub fn run(mut terminal: DefaultTerminal, decks: Vec<Deck>) -> Result<App> {
     let mut app = App::new(decks);
 
     if app.due_cards_count() == 0 {
@@ -18,16 +18,14 @@ pub fn run(mut terminal: DefaultTerminal, decks: Vec<Deck>) -> Result<()> {
         terminal.draw(|f| app.draw(f))?;
         if let Event::Key(key) = event::read()? {
             if key.code == KeyCode::Char('q') {
-                break;
+                return Ok(app);
             }
             if let Err(e) = app.handle_event(Event::Key(key)) {
-                // If no more cards, exit
                 if e.to_string() == "No more cards due for review" {
-                    break;
+                    return Ok(app);
                 }
                 return Err(e);
             }
         }
     }
-    Ok(())
 }

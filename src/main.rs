@@ -9,6 +9,7 @@ mod app_runner;
 use crate::app_runner::run;
 use crate::load::load_decks;
 use crate::utilities::print_deck_structure;
+use crate::utilities::print_session_summary;
 
 fn main() -> color_eyre::Result<()> {
     let decks = load_decks()?;
@@ -21,5 +22,10 @@ fn main() -> color_eyre::Result<()> {
     let terminal = ratatui::init();
     let result = run(terminal, decks);
     ratatui::restore();
-    result
+
+    if let Ok(app) = &result {
+        print_session_summary(app.remembered_count, app.forgotten_count);
+    }
+
+    result.map(|_| ())
 }
