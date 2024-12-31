@@ -49,11 +49,12 @@ fn load_deck_from_directory(path: &Path) -> Result<Deck> {
         let entry = entry?;
         let entry_path = entry.path();
         
-        if entry_path.is_file() && entry_path.extension().map_or(false, |ext| ext == "yaml" || ext == "yml") {
-            let contents = fs::read_to_string(&entry_path)?;
-            let card: Card = serde_yaml::from_str(&contents)?;
-            cards.push(card);
-        } else if entry_path.is_dir() {
+            if entry_path.is_file() && entry_path.extension().map_or(false, |ext| ext == "yaml" || ext == "yml") {
+                let contents = fs::read_to_string(&entry_path)?;
+                let mut card: Card = serde_yaml::from_str(&contents)?;
+                card.file_path = Some(entry_path.clone());
+                cards.push(card);
+            } else if entry_path.is_dir() {
             match load_deck_from_directory(&entry_path) {
                 Ok(subdeck) => subdecks.push(subdeck),
                 Err(e) => eprintln!("Error loading subdeck from {:?}: {}", entry_path, e),

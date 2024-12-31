@@ -5,6 +5,7 @@ use color_eyre::Result;
 use ratatui::crossterm::event::{Event, KeyCode, KeyEvent};
 use crate::ui::draw_hint;
 use crate::ui::draw_full;
+use crate::utilities::current_unix_time;
 
 pub enum CardState {
     Hint,
@@ -12,13 +13,13 @@ pub enum CardState {
 }
 
 pub struct App<'a> {
-    pub cards: Vec<(&'a Card, &'a str)>, // (card, deck_name)
+    pub cards: Vec<(&'a mut Card, &'a str)>, // Change to mut Card
     pub current_card_index: usize,
     pub state: CardState,
 }
 
 impl<'a> App<'a> {
-    pub fn new(cards: Vec<(&'a Card, &'a str)>) -> Self {
+    pub fn new(cards: Vec<(&'a mut Card, &'a str)>) -> Self {  // Update constructor
         Self {
             cards,
             current_card_index: 0,
@@ -32,9 +33,27 @@ impl<'a> App<'a> {
                 KeyCode::Char(' ') => self.toggle_state(),
                 KeyCode::Right => self.next_card(),
                 KeyCode::Left => self.prev_card(),
+                KeyCode::Enter => self.review_card(true)?,  // Remember
+                KeyCode::Char('f') => self.review_card(false)?,  // Forget
                 _ => {}
             }
         }
+        Ok(())
+    }
+
+    fn review_card(&mut self, remembered: bool) -> Result<()> {
+        let current_time = current_unix_time();
+        
+        // Get mutable reference to current card
+        // Note: We need to index into cards vector directly since we're mutating
+        let (card, _) = &mut self.cards[self.current_card_index];
+        
+        // Calculate next review time and save
+        card.calculate_next_review(current_time, remembered)?;
+        
+        // Move to next card
+        self.next_card();
+        
         Ok(())
     }
 
