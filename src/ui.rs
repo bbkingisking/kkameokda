@@ -12,7 +12,7 @@ use ratatui::widgets::{
 };
 use ratatui::style::{Color, Style};
 
-pub fn draw_frame(f: &mut Frame, remaining: usize, current_deck: Option<&str>) {
+pub fn draw_frame(f: &mut Frame, remaining: usize, remembered: u32, forgotten: u32, current_deck: Option<&str>) {
     let mut main_block = Block::default()
         .borders(Borders::ALL)
         .title(
@@ -54,10 +54,23 @@ pub fn draw_frame(f: &mut Frame, remaining: usize, current_deck: Option<&str>) {
 
     // Remaining cards count stays on bottom right
     main_block = main_block.title(
-        Title::from(Line::from(Span::styled(
-            format!(" {} ", remaining),
-            Style::default().fg(Color::Green)
-        )))
+        Title::from(Line::from(vec![
+            Span::raw(" ("),
+            Span::styled(
+                format!("{}", remembered),
+                Style::default().fg(Color::Green)
+            ),
+            Span::raw("/"),
+            Span::styled(
+                format!("{}", forgotten),
+                Style::default().fg(Color::Red)
+            ),
+            Span::raw(") | "),
+            Span::styled(
+                format!("{} ", remaining),
+                Style::default().fg(Color::Green)
+            ),
+        ]))
         .alignment(Alignment::Right)
         .position(Position::Bottom)
     );
@@ -122,11 +135,11 @@ pub fn draw_full(f: &mut Frame, card: &Card) {
 
     let info_layout = Layout::default()
         .direction(Direction::Horizontal)
-        .constraints(vec![
-            Constraint::Percentage(33),    
-            Constraint::Percentage(33),    
-            Constraint::Percentage(33),    
-        ])
+        .constraints(create_dynamic_constraints(
+            card.explanation.is_some(),
+            !card.examples.as_ref().map_or(true, |e| e.is_empty()),
+            card.notes.is_some()
+        ))
         .split(back_layout[3]);
 
     f.render_widget(
@@ -135,33 +148,60 @@ pub fn draw_full(f: &mut Frame, card: &Card) {
         back_layout[1]
         );
 
-    f.render_widget(
-        Paragraph::new(card.explanation.as_deref().unwrap_or(""))
-        .wrap(Wrap { trim: true })
-        .block(Block::new().title("Explanation").borders(Borders::ALL))
-        .alignment(Alignment::Center),
-        info_layout[0]
-        );
+    let mut rendered_sections = 0;
 
-    let examples = card.examples.as_ref()
-    .map(|e| e.iter()
-        .map(|ex| format!("{} - {}\n", ex.sentence, ex.translation))
-        .collect::<String>())
-    .unwrap_or_default();
-
-    f.render_widget(
-        Paragraph::new(examples)
-        .wrap(Wrap { trim: true })
-        .block(Block::new().title("Examples").borders(Borders::ALL))
-        .alignment(Alignment::Center),
-        info_layout[1]
+    if let Some(explanation) = &card.explanation {
+        f.render_widget(
+            Paragraph::new(explanation.as_str())
+                .wrap(Wrap { trim: true })
+                .block(Block::new().title("Explanation").borders(Borders::ALL))
+                .alignment(Alignment::Center),
+            info_layout[rendered_sections]
         );
+        rendered_sections += 1;
+    }
 
-    f.render_widget(
-        Paragraph::new(card.notes.as_deref().unwrap_or(""))
-        .wrap(Wrap { trim: true })
-        .block(Block::new().title("Notes").borders(Borders::ALL))
-        .alignment(Alignment::Center),
-        info_layout[2]
+    if let Some(examples) = &card.examples {
+        if !examples.is_empty() {
+            let examples_text = examples.iter()
+                .map(|ex| format!("{} - {}\n", ex.sentence, ex.translation))
+                .collect::<String>();
+            
+            f.render_widget(
+                Paragraph::new(examples_text.as_str())
+                    .wrap(Wrap { trim: true })
+                    .block(Block::new().title("Examples").borders(Borders::ALL))
+                    .alignment(Alignment::Center),
+                info_layout[rendered_sections]
+            );
+            rendered_sections += 1;
+        }
+    }
+
+    if let Some(notes) = &card.notes {
+        f.render_widget(
+            Paragraph::new(notes.as_str())
+                .wrap(Wrap { trim: true })
+                .block(Block::new().title("Notes").borders(Borders::ALL))
+                .alignment(Alignment::Center),
+            info_layout[rendered_sections]
         );
+    }
+}
+
+fn create_dynamic_constraints(has_explanation: bool, has_examples: bool, has_notes: bool) -> Vec<Constraint> {
+    let present_sections = [has_explanation, has_examples, has_notes];
+    let count = present_sections.iter().filter(|&&x| x).count();
+    
+    match count {
+        0 => vec![],
+        1 => vec![Constraint::Percentage(100)],
+        2 => vec![Constraint::Percentage(50), Constraint::Percentage(50)],
+        3 => vec![
+            Constraint::Percentage(33),
+            Constraint::Percentage(33),
+            Constraint::Percentage(33),
+        ],
+        _ => unreachable!(),
+    }
 }

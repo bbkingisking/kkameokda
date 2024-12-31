@@ -19,6 +19,8 @@ pub struct App {
     pub decks: Vec<Deck>,
     pub current_card_index: usize,
     pub state: CardState,
+    pub remembered_count: u32,
+    pub forgotten_count: u32,
 }
 
 impl App {
@@ -27,6 +29,8 @@ impl App {
             decks,
             current_card_index: 0,
             state: CardState::Hint,
+            remembered_count: 0,
+            forgotten_count: 0,
         }
     }
 
@@ -87,10 +91,15 @@ impl App {
     fn review_card(&mut self, remembered: bool) -> Result<()> {
         let current_time = current_unix_time();
         
-        if let Some((card, _)) = self.get_card_mut(self.current_card_index) {
-            card.calculate_next_review(current_time, remembered)?;
+        if remembered {
+            self.remembered_count += 1;
+        } else {
+            self.forgotten_count += 1;
         }
         
+        if let Some((card, _)) = self.get_card_mut(self.current_card_index) {
+            card.calculate_next_review(current_time, remembered)?;
+        }       
         let due_cards_count = self.due_cards_count();
         if due_cards_count == 0 {
             return Err(color_eyre::eyre::eyre!("No more cards due for review"));
@@ -134,7 +143,7 @@ impl App {
 
     pub fn draw(&self, f: &mut Frame) {
         let total_due = self.due_cards_count();
-        draw_frame(f, total_due, self.current_deck_name());
+        draw_frame(f, total_due, self.remembered_count, self.forgotten_count, self.current_deck_name());
 
         if let Some((card, _)) = self.current_card() {
             match self.state {
