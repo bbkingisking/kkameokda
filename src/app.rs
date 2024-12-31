@@ -6,6 +6,7 @@ use ratatui::crossterm::event::{Event, KeyCode, KeyEvent};
 use crate::ui::draw_hint;
 use crate::ui::draw_full;
 use crate::utilities::current_unix_time;
+use crate::ui::draw_frame;
 
 pub enum CardState {
     Hint,
@@ -25,6 +26,10 @@ impl<'a> App<'a> {
             current_card_index: 0,
             state: CardState::Hint,
         }
+    }
+
+    pub fn due_cards_count(&self) -> usize {
+        self.cards.len()
     }
 
     pub fn handle_event(&mut self, event: Event) -> Result<()> {
@@ -87,6 +92,9 @@ impl<'a> App<'a> {
     }
 
     pub fn draw(&self, f: &mut Frame) {
+        let total_due = self.due_cards_count();
+        draw_frame(f, total_due);
+
         match self.state {
             CardState::Hint => draw_hint(f, self.current_card()),
             CardState::Full => draw_full(f, self.current_card()),

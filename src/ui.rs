@@ -10,68 +10,65 @@ use ratatui::widgets::{
     block::{Position, Title},
     Block,
 };
+use ratatui::style::{Color, Style};
 
-pub fn draw_frame(f: &mut Frame) -> Rect {
+pub fn draw_frame(f: &mut Frame, remaining: usize) {
     let main_block = Block::default()
         .borders(Borders::ALL)
         .title(" 까먹다 ")
         .title(
-            Title::from(" Status ")
+            Title::from(Line::from(format!(" {} ", remaining)).style(Style::default().fg(Color::Green)))
                 .alignment(Alignment::Right)
-                .position(Position::Bottom),
+                .position(Position::Bottom)
         );
     
-    // Get the outer area
-    let area = f.area();
-    
-    // Render the main border
-    let inner_area = main_block.inner(area);  // Get the inner area accounting for borders
-    f.render_widget(main_block, area);
-    
-    // Create the layout inside the bordered area using inner_area
-    let layout = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints(vec![
-            Constraint::Length(1),    
-            Constraint::Min(0),       
-
-        ])
-        .split(inner_area);  // Use inner_area instead of f.area()
-    
-    layout[1]
+    f.render_widget(main_block, f.area());
 }
 
 pub fn draw_hint(f: &mut Frame, card: &Card) {
-    let content_area = draw_frame(f);
-
-    let inner_layout = Layout::default()
-    .direction(Direction::Vertical)
-    .constraints(vec![
-        Constraint::Percentage(30),
-           Constraint::Max(1),      // Front text
-           Constraint::Min(0),      
-           ])
-    .split(content_area);
-
-    f.render_widget(
-        Paragraph::new(card.front.as_str())
-        .alignment(Alignment::Center),
-        inner_layout[1]
-        );
-}
-
-pub fn draw_full(f: &mut Frame, card: &Card) {
-    let content_area = draw_frame(f);
-    draw_hint(f, card);
+    let area = f.area();
+    let inner_area = Block::default()
+        .borders(Borders::ALL)
+        .inner(area);
 
     let inner_layout = Layout::default()
         .direction(Direction::Vertical)
         .constraints(vec![
             Constraint::Percentage(30),
-            Constraint::Max(1),
-            Constraint::Min(0),
-            ])
-        .split(content_area);
+            Constraint::Max(1),      
+            Constraint::Min(0),      
+        ])
+        .split(inner_area);
+
+    f.render_widget(
+        Paragraph::new(card.front.as_str())
+            .alignment(Alignment::Center),
+        inner_layout[1]
+    );
+}
+
+pub fn draw_full(f: &mut Frame, card: &Card) {
+    let area = f.area();
+    // Get inner area accounting for the main frame's borders
+    let inner_area = Block::default()
+        .borders(Borders::ALL)
+        .inner(area);
+
+    let inner_layout = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints(vec![
+            Constraint::Percentage(30),
+            Constraint::Max(1),      // Front text
+            Constraint::Min(0),      
+        ])
+        .split(inner_area);  // Use inner_area instead of area
+
+    // Draw front
+    f.render_widget(
+        Paragraph::new(card.front.as_str())
+            .alignment(Alignment::Center),
+        inner_layout[1]
+    );
 
     let back_layout = Layout::default()
         .direction(Direction::Vertical)
@@ -80,7 +77,7 @@ pub fn draw_full(f: &mut Frame, card: &Card) {
             Constraint::Percentage(10),
             Constraint::Percentage(40),
             Constraint::Percentage(40),
-            ])
+        ])
         .split(inner_layout[2]);
 
     let info_layout = Layout::default()
@@ -89,7 +86,7 @@ pub fn draw_full(f: &mut Frame, card: &Card) {
             Constraint::Percentage(33),    
             Constraint::Percentage(33),    
             Constraint::Percentage(33),    
-            ])
+        ])
         .split(back_layout[3]);
 
     f.render_widget(
