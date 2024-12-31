@@ -10,24 +10,36 @@ use ratatui::prelude::*;
 use crate::model::{Card};
 use crate::utilities::current_unix_time;
 use rand::seq::SliceRandom;
-use crate::model::create_example_deck;
+use crate::model::Deck;
 
-pub fn run(mut terminal: DefaultTerminal) -> Result<()> {
-    let deck = create_example_deck();
+pub fn run(mut terminal: DefaultTerminal, decks: Vec<Deck>) -> Result<()> {
     let current_time = current_unix_time();
     
-    let due_cards: Vec<&Card> = deck.cards.iter()
-    .filter(|card| card.next_review < Some(current_time))
-    .collect();
+    // Get due cards from all decks
+    let due_cards: Vec<(&Card, &str)> = decks.iter()
+        .flat_map(|deck| {
+            deck.cards.iter()
+                .filter(|card| card.next_review < Some(current_time))
+                .map(|card| (card, deck.name.as_str()))
+        })
+        .collect();
     
-    let current_card = due_cards.choose(&mut rand::thread_rng())
-    .expect("No cards due for review");
+    if due_cards.is_empty() {
+        return Err(color_eyre::eyre::eyre!("No cards due for review"));
+    }
+    
+    let (current_card, _) = due_cards.choose(&mut rand::thread_rng())
+        .expect("No cards due for review");
 
     loop {
         terminal.draw(|f| draw(f, current_card))?;
         if let Event::Key(key) = event::read()? {
-            if key.kind == KeyEventKind::Press && key.code == KeyCode::Char('q') {
-                break Ok(());
+            if key.kind == KeyEventKind::Press {
+                match key.code {
+                    KeyCode::Char('q') => break Ok(()),
+                    // Add other key handling here
+                    _ => {}
+                }
             }
         }
     }
