@@ -36,10 +36,15 @@ fn load_deck_from_directory(path: &Path) -> Result<Deck> {
     if !path.is_dir() {
         return Err(color_eyre::eyre::eyre!("Path is not a directory"));
     }
-    let deck_name = path.file_name()
-        .and_then(|name| name.to_str())
-        .ok_or_else(|| color_eyre::eyre::eyre!("Invalid directory name"))?
-        .to_string();
+
+    // Get the path relative to the flashcards directory
+    let flashcards_dir = get_flashcards_dir();
+    let relative_path = path.strip_prefix(&flashcards_dir)
+        .unwrap_or(path.as_ref());
+    
+    // Use the full path as the deck name
+    let deck_name = relative_path.to_string_lossy().replace('\\', "/");
+    
     let mut cards = Vec::new();
     let mut subdecks = Vec::new();
     
@@ -65,7 +70,7 @@ fn load_deck_from_directory(path: &Path) -> Result<Deck> {
     Ok(Deck {
         name: deck_name,
         cards,
-        subdecks, // Just pass the vector directly
+        subdecks, 
     })
 }
 
