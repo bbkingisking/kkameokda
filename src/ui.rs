@@ -15,19 +15,19 @@ use ratatui::style::{Color, Style};
 pub fn draw_frame(f: &mut Frame, remaining: usize, current_deck: Option<&str>) {
     let mut main_block = Block::default()
         .borders(Borders::ALL)
-        .title(" 까먹다 ")
         .title(
-            Title::from(Line::from(" | ")) // Separator
+            Title::from(
+                Line::from(vec![
+                    Span::raw(" 까먹다 "),
+                    Span::raw("│ "),
+                    Span::styled(
+                        format!(" {} ", current_deck.unwrap_or("No Deck")),
+                        Style::default().fg(Color::Yellow)
+                    ),
+                    Span::raw(" "),                
+                ])
+            )
         );
-
-    if let Some(deck_name) = current_deck {
-        main_block = main_block.title(
-            Title::from(Line::from(Span::styled(
-                format!(" {} ", deck_name),
-                Style::default().fg(Color::Yellow)
-            )))
-        );
-    }
 
     // Create a nicely formatted shortcuts string with colors and separators
     let shortcuts = Line::from(vec![
@@ -35,7 +35,7 @@ pub fn draw_frame(f: &mut Frame, remaining: usize, current_deck: Option<&str>) {
         Span::styled("Space", Style::default().fg(Color::Yellow)),  // Unicode space symbol
         Span::raw(": Toggle "),
         Span::raw("│ "),
-        Span::styled("↵", Style::default().fg(Color::Yellow)),  // Unicode enter symbol
+        Span::styled("Enter ", Style::default().fg(Color::Yellow)),  // Unicode enter symbol
         Span::raw(": Remember "),
         Span::raw("│ "),
         Span::styled("f", Style::default().fg(Color::Yellow)),
