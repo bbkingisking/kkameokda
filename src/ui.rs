@@ -130,13 +130,15 @@ pub fn draw_full(f: &mut Frame, card: &Card, reversed: bool) {
     if reversed {
         f.render_widget(
             Paragraph::new(card.back.as_str())
-                .alignment(Alignment::Center),
+                .alignment(Alignment::Center)
+                .wrap(Wrap { trim: true }),
             inner_layout[1]
         );
     } else {
         f.render_widget(
             Paragraph::new(card.front.as_str())
-                .alignment(Alignment::Center),
+                .alignment(Alignment::Center)
+                .wrap(Wrap { trim: true }),
             inner_layout[1]
         );
     }
@@ -156,13 +158,15 @@ pub fn draw_full(f: &mut Frame, card: &Card, reversed: bool) {
     if reversed {
         f.render_widget(
             Paragraph::new(card.front.as_str())
-                .alignment(Alignment::Center),
+                .alignment(Alignment::Center)
+                .wrap(Wrap { trim: true }),
             back_layout[1]
         );
     } else {
         f.render_widget(
             Paragraph::new(card.back.as_str())
-                .alignment(Alignment::Center),
+                .alignment(Alignment::Center)
+                .wrap(Wrap { trim: true }),
             back_layout[1]
         );
     }
