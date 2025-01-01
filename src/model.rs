@@ -25,6 +25,8 @@ pub struct Card {
     pub next_review: Option<u64>,
     #[serde(default)]
     pub ease_factor: Option<u64>,
+    #[serde(default = "Card::default_reversible")]
+    pub reversible: bool,
     #[serde(skip)]  // Don't deserialize from YAML
     pub file_path: Option<PathBuf>,
 }
@@ -42,6 +44,10 @@ pub struct ReviewHistory {
  }
 
  impl Card {
+    fn default_reversible() -> bool {
+        true
+    }
+
     pub fn calculate_next_review(&mut self, current_time: u64, remembered: bool) -> Result<u64> {
         let random_factor = (0.8 + (rand::random::<f64>() * 0.4)) as u64;
         

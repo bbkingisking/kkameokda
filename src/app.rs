@@ -36,7 +36,7 @@ impl App {
         };
         app.refresh_due_cards();
         if !app.due_cards.is_empty() {
-            app.current_card = Some(app.due_cards[0].clone());
+            app.next_card();
         }
         app
     }
@@ -151,23 +151,16 @@ impl App {
 
     fn next_card(&mut self) {
         if !self.due_cards.is_empty() {
-            let next_card = if let Some((current_card, _)) = &self.current_card {
-                // Find the first card that's different from the current one
-                self.due_cards.iter()
-                    .find(|(card, _)| 
-                        card.front != current_card.front || 
-                        card.back != current_card.back
-                    )
-                    .or(self.due_cards.first())
-                    .cloned()
-            } else {
-                self.due_cards.first().cloned()
-            };
+            let next_card = self.due_cards.first().cloned();
             
-            if let Some(card) = next_card {
-                self.current_card = Some(card);
+            if let Some((card, deck_name)) = next_card {
+                self.current_card = Some((card.clone(), deck_name));
                 self.state = CardState::Hint;
-                self.reversed = rand::random();
+                self.reversed = if card.reversible {
+                    rand::random()
+                } else {
+                    false
+                };
             }
         }
     }
