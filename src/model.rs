@@ -49,13 +49,16 @@ pub struct ReviewHistory {
     }
 
     pub fn calculate_next_review(&mut self, current_time: u64, remembered: bool) -> Result<u64> {
+        let base_interval = 24 * 60 * 60; // 1 day in seconds
+        let max_interval = 180 * 24 * 60 * 60; // 6 months in seconds
         let random_factor = (0.8 + (rand::random::<f64>() * 0.4)) as u64;
         
         if remembered {
-            self.ease_factor = Some((self.ease_factor.unwrap_or(60) as f64 * 1.5) as u64);
-            self.next_review = Some(current_time + self.ease_factor.unwrap_or(0) + random_factor);
+            let new_ease = (self.ease_factor.unwrap_or(base_interval) as f64 * 1.5) as u64;
+            self.ease_factor = Some(new_ease.min(max_interval));
+            self.next_review = Some(current_time + self.ease_factor.unwrap() + random_factor);
         } else {
-            self.ease_factor = Some(60);
+            self.ease_factor = Some(base_interval);
             self.next_review = Some(current_time + random_factor);
         }
         
@@ -81,10 +84,10 @@ pub struct ReviewHistory {
 
     pub fn initialize_review_data(&mut self) {
         if self.next_review.is_none() {
-            self.next_review = Some(current_unix_time() - 1 as u64);
+            self.next_review = Some(current_unix_time() - 1);
         }
         if self.ease_factor.is_none() {
-            self.ease_factor = Some(60);
+            self.ease_factor = Some(24 * 60 * 60); // Start with 1 day
         }
         if self.history.is_none() {
             self.history = Some(Vec::new());
