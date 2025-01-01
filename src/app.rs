@@ -7,6 +7,8 @@ use crate::ui::draw_full;
 use crate::utilities::current_unix_time;
 use crate::ui::draw_frame;
 use crate::model::Deck;
+use clap::Parser;
+use crate::args::Cli;
 
 pub enum CardState {
     Hint,
@@ -150,13 +152,14 @@ impl App {
     }
 
     fn next_card(&mut self) {
+        let cli = Cli::parse();
         if !self.due_cards.is_empty() {
             let next_card = self.due_cards.first().cloned();
             
             if let Some((card, deck_name)) = next_card {
                 self.current_card = Some((card.clone(), deck_name));
                 self.state = CardState::Hint;
-                self.reversed = if card.reversible {
+                self.reversed = if card.reversible && cli.reversible.unwrap_or(true) {
                     rand::random()
                 } else {
                     false

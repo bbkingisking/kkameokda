@@ -5,6 +5,7 @@ mod utilities;
 mod load;
 mod app;
 mod app_runner;
+mod args;
 
 use crate::app_runner::run;
 use crate::load::load_decks;

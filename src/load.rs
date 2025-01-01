@@ -3,7 +3,8 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use color_eyre::Result;
 use crate::model::{Card, Deck};
-
+use clap::Parser;
+use crate::args::Cli;
 pub fn load_decks() -> Result<Vec<Deck>> {
     let flashcards_dir = get_flashcards_dir();
     
@@ -75,7 +76,12 @@ fn load_deck_from_directory(path: &Path) -> Result<Deck> {
 }
 
 pub fn get_flashcards_dir() -> PathBuf {
-    dirs::home_dir()
-        .expect("Could not find home directory")
-        .join("flashcards")
+    let cli = Cli::parse();
+    if cli.directory.is_some() {
+        PathBuf::from(cli.directory.unwrap())
+    } else {
+        dirs::home_dir()
+            .expect("Could not find home directory")
+            .join("flashcards")
+    }
 }
