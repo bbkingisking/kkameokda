@@ -44,7 +44,7 @@ Flashcards are organized in directories, where each directory represents a deck:
   │   ├── frog.yaml
   │   └── grammar/
   │       └── past_tense.yaml
-  └── Chinese/
+  ├── Chinese/
   │   └── simplified/
   │       └── ten.yaml
   │   └── traditional/
