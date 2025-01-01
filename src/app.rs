@@ -1,3 +1,4 @@
+// app.rs
 use crate::model::Card;
 use ratatui::prelude::*;
 use color_eyre::Result;
@@ -23,6 +24,7 @@ pub struct App {
     pub reversed: bool,
     due_cards: Vec<(Card, String)>,
     current_card: Option<(Card, String)>,
+    show_shortcuts: bool,  // Add this
 }
 
 impl App {
@@ -35,6 +37,7 @@ impl App {
             reversed: rand::random(),
             due_cards: Vec::new(),
             current_card: None,
+            show_shortcuts: false,  // Add this
         };
         app.refresh_due_cards();
         if !app.due_cards.is_empty() {
@@ -107,6 +110,8 @@ impl App {
                 KeyCode::Char(' ') => self.toggle_state(),
                 KeyCode::Enter => self.review_card(true)?,
                 KeyCode::Char('f') => self.review_card(false)?,
+                KeyCode::Char('?') => self.show_shortcuts = !self.show_shortcuts,
+                KeyCode::Esc => self.show_shortcuts = false, 
                 _ => {}
             }
         }
@@ -174,7 +179,6 @@ impl App {
 
     pub fn draw(&self, f: &mut Frame) {
         let total_due = self.due_cards_count();
-        draw_frame(f, total_due, self.remembered_count, self.forgotten_count, self.current_deck_name());
 
         if let Some((card, _)) = self.current_card() {
             match self.state {
@@ -182,5 +186,7 @@ impl App {
                 CardState::Full => draw_full(f, card, self.reversed),
             }
         }
+        draw_frame(f, total_due, self.remembered_count, self.forgotten_count, self.current_deck_name(), self.show_shortcuts);
+
     }
 }

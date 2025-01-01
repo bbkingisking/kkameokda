@@ -1,7 +1,7 @@
 // ui.rs
 use ratatui::{
-    layout::{Alignment, Constraint, Layout},
-    widgets::{Borders, Paragraph, Wrap},
+    layout::{Alignment, Constraint, Layout, Flex, Rect},
+    widgets::{Borders, BorderType, Paragraph, Wrap, Clear},
     Frame,
 };
 use ratatui::prelude::*;
@@ -12,7 +12,15 @@ use ratatui::widgets::{
 };
 use ratatui::style::{Color, Style};
 
-pub fn draw_frame(f: &mut Frame, remaining: usize, remembered: u32, forgotten: u32, current_deck: Option<&str>) {
+fn popup_area(area: Rect, percent_x: u16, percent_y: u16) -> Rect {
+    let vertical = Layout::vertical([Constraint::Percentage(percent_y)]).flex(Flex::Center);
+    let horizontal = Layout::horizontal([Constraint::Percentage(percent_x)]).flex(Flex::Center);
+    let [area] = vertical.areas(area);
+    let [area] = horizontal.areas(area);
+    area
+}
+
+pub fn draw_frame(f: &mut Frame, remaining: usize, remembered: u32, forgotten: u32, current_deck: Option<&str>, show_shortcuts: bool) {
     let mut main_block = Block::default()
         .borders(Borders::ALL)
         .title(
@@ -29,30 +37,19 @@ pub fn draw_frame(f: &mut Frame, remaining: usize, remembered: u32, forgotten: u
             )
         );
 
-    // Create a nicely formatted shortcuts string with colors and separators
+    // Simplified shortcuts string with just the ? key
     let shortcuts = Line::from(vec![
         Span::raw(" "),
-        Span::styled("Space", Style::default().fg(Color::Yellow)),  // Unicode space symbol
-        Span::raw(": Toggle "),
-        Span::raw("│ "),
-        Span::styled("Enter ", Style::default().fg(Color::Yellow)),  // Unicode enter symbol
-        Span::raw(": Remember "),
-        Span::raw("│ "),
-        Span::styled("f", Style::default().fg(Color::Yellow)),
-        Span::raw(": Forgot "),
-        Span::raw("│ "),
-        Span::styled("q", Style::default().fg(Color::Yellow)),
-        Span::raw(": Quit "),
+        Span::styled("?", Style::default().fg(Color::Yellow)),
+        Span::raw(": Show shortcuts "),
     ]);
 
-    // Add styled keyboard shortcuts to bottom left
     main_block = main_block.title(
         Title::from(shortcuts)
             .alignment(Alignment::Left)
             .position(Position::Bottom)
     );
 
-    // Remaining cards count stays on bottom right
     main_block = main_block.title(
         Title::from(Line::from(vec![
             Span::raw(" ("),
@@ -76,6 +73,44 @@ pub fn draw_frame(f: &mut Frame, remaining: usize, remembered: u32, forgotten: u
     );
     
     f.render_widget(main_block, f.area());
+
+    // Render shortcuts popup if enabled
+    if show_shortcuts {
+        let area = popup_area(f.area(), 60, 40);
+        f.render_widget(Clear, area);
+        
+    let shortcuts_text = vec![
+        Line::from("\n"), // Empty line at top for spacing
+        Line::from(vec![
+            Span::styled("Space", Style::default().fg(Color::Yellow)),
+            Span::raw(": Toggle card view"),
+        ]),
+        Line::from(vec![
+            Span::styled("Enter", Style::default().fg(Color::Yellow)),
+            Span::raw(": Mark as remembered"),
+        ]),
+        Line::from(vec![
+            Span::styled("f", Style::default().fg(Color::Yellow)),
+            Span::raw(": Mark as forgotten"),
+        ]),
+        Line::from(vec![
+            Span::styled("q", Style::default().fg(Color::Yellow)),
+            Span::raw(": Quit"),
+        ]),
+        Line::from(vec![
+            Span::styled("Esc/?", Style::default().fg(Color::Yellow)),
+            Span::raw(": Toggle shortcuts"),
+        ]),
+    ];
+            
+        let popup = Paragraph::new(shortcuts_text)
+            .block(Block::default()
+                .title("Shortcuts")
+                .borders(Borders::ALL).border_type(BorderType::Double))
+            .alignment(Alignment::Left)
+            .wrap(Wrap { trim: true });
+        f.render_widget(popup, area);
+    }
 }
 
 pub fn draw_hint(f: &mut Frame, card: &Card, reversed: bool) {
