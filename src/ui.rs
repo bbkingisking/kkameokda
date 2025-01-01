@@ -101,6 +101,10 @@ pub fn draw_frame(f: &mut Frame, remaining: usize, remembered: u32, forgotten: u
             Span::styled("Esc/?", Style::default().fg(Color::Yellow)),
             Span::raw(": Toggle shortcuts"),
         ]),
+        Line::from(vec![
+            Span::styled("Ctrl+e", Style::default().fg(Color::Yellow)),
+            Span::raw(": Open current flashcard"),
+        ]),
     ];
             
         let popup = Paragraph::new(shortcuts_text)

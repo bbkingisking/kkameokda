@@ -12,3 +12,4 @@ dirs = "5.0.1"
 serde = { version = "1.0.217", features = ["derive"] }
 serde_yaml = "0.9"
 clap = { version = "4.5.23", features = ["derive"] }
+opener = "0.7.2"

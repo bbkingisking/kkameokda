@@ -2,7 +2,7 @@
 use crate::model::Card;
 use ratatui::prelude::*;
 use color_eyre::Result;
-use ratatui::crossterm::event::{Event, KeyCode, KeyEvent};
+use ratatui::crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
 use crate::ui::draw_hint;
 use crate::ui::draw_full;
 use crate::utilities::current_unix_time;
@@ -10,6 +10,7 @@ use crate::ui::draw_frame;
 use crate::model::Deck;
 use clap::Parser;
 use crate::args::Cli;
+use opener;
 
 pub enum CardState {
     Hint,
@@ -104,20 +105,26 @@ impl App {
             .map(|(card, name)| (card, name.as_str()))
     }
 
-    pub fn handle_event(&mut self, event: Event) -> Result<()> {
-        if let Event::Key(KeyEvent { code, .. }) = event {
-            match code {
-                KeyCode::Char(' ') => self.toggle_state(),
-                KeyCode::Enter => self.review_card(true)?,
-                KeyCode::Char('f') => self.review_card(false)?,
-                KeyCode::Char('?') => self.show_shortcuts = !self.show_shortcuts,
-                KeyCode::Esc => self.show_shortcuts = false, 
-                _ => {}
-            }
+pub fn handle_event(&mut self, event: Event) -> Result<()> {
+    if let Event::Key(KeyEvent { code, modifiers, .. }) = event {
+        match code {
+            KeyCode::Char(' ') => self.toggle_state(),
+            KeyCode::Enter => self.review_card(true)?,
+            KeyCode::Char('f') => self.review_card(false)?,
+            KeyCode::Char('?') => self.show_shortcuts = !self.show_shortcuts,
+            KeyCode::Esc => self.show_shortcuts = false, 
+            KeyCode::Char('e') if modifiers.contains(KeyModifiers::CONTROL) => {
+                if let Some((card, _)) = &self.current_card {
+                    if let Some(path) = &card.file_path {
+                        opener::open(path)?;
+                    }
+                }
+            },
+            _ => {}
         }
-        Ok(())
     }
-
+    Ok(())
+}
     fn review_card(&mut self, remembered: bool) -> Result<()> {
         let current_time = current_unix_time();
         
