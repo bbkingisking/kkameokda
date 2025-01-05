@@ -11,6 +11,7 @@ use crate::model::Deck;
 use clap::Parser;
 use crate::args::Cli;
 use opener;
+use rand::Rng;
 
 pub enum CardState {
     Hint,
@@ -105,26 +106,27 @@ impl App {
             .map(|(card, name)| (card, name.as_str()))
     }
 
-pub fn handle_event(&mut self, event: Event) -> Result<()> {
-    if let Event::Key(KeyEvent { code, modifiers, .. }) = event {
-        match code {
-            KeyCode::Char(' ') => self.toggle_state(),
-            KeyCode::Enter => self.review_card(true)?,
-            KeyCode::Char('f') => self.review_card(false)?,
-            KeyCode::Char('?') => self.show_shortcuts = !self.show_shortcuts,
-            KeyCode::Esc => self.show_shortcuts = false, 
-            KeyCode::Char('e') if modifiers.contains(KeyModifiers::CONTROL) => {
-                if let Some((card, _)) = &self.current_card {
-                    if let Some(path) = &card.file_path {
-                        opener::open(path)?;
+    pub fn handle_event(&mut self, event: Event) -> Result<()> {
+        if let Event::Key(KeyEvent { code, modifiers, .. }) = event {
+            match code {
+                KeyCode::Char(' ') => self.toggle_state(),
+                KeyCode::Enter => self.review_card(true)?,
+                KeyCode::Char('f') => self.review_card(false)?,
+                KeyCode::Char('?') => self.show_shortcuts = !self.show_shortcuts,
+                KeyCode::Esc => self.show_shortcuts = false, 
+                KeyCode::Char('e') if modifiers.contains(KeyModifiers::CONTROL) => {
+                    if let Some((card, _)) = &self.current_card {
+                        if let Some(path) = &card.file_path {
+                            opener::open(path)?;
+                        }
                     }
-                }
-            },
-            _ => {}
+                },
+                _ => {}
+            }
         }
+        Ok(())
     }
-    Ok(())
-}
+
     fn review_card(&mut self, remembered: bool) -> Result<()> {
         let current_time = current_unix_time();
         
@@ -166,7 +168,8 @@ pub fn handle_event(&mut self, event: Event) -> Result<()> {
     fn next_card(&mut self) {
         let cli = Cli::parse();
         if !self.due_cards.is_empty() {
-            let next_card = self.due_cards.first().cloned();
+            let index = rand::thread_rng().gen_range(0..self.due_cards.len());
+            let next_card = self.due_cards.get(index).cloned();
             
             if let Some((card, deck_name)) = next_card {
                 self.current_card = Some((card.clone(), deck_name));
